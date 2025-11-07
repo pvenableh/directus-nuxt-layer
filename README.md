@@ -1,0 +1,2 @@
+# directus-nuxt-layer
+ 
