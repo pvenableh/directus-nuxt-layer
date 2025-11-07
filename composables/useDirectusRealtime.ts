@@ -2,49 +2,76 @@ import { ref, onUnmounted } from 'vue'
 
 export const useDirectusRealtime = () => {
   const config = useRuntimeConfig()
-  const { session } = useUserSession()
   
   const ws = ref<WebSocket | null>(null)
   const connected = ref(false)
+  const authenticated = ref(false)
   const subscriptions = ref<Map<string, Set<Function>>>(new Map())
 
   /**
    * Connect to WebSocket
+   * If requireAuth is true, fetches token from server
+   * If requireAuth is false, connects without authentication (for public collections)
    */
-  const connect = () => {
+  const connect = async (options?: {
+    requireAuth?: boolean
+    token?: string
+  }) => {
     if (ws.value?.readyState === WebSocket.OPEN) return
 
-    const token = session.value?.secure?.directusAccessToken
-    const wsUrl = token 
-      ? `${config.public.directus.websocketUrl}?access_token=${token}`
-      : config.public.directus.websocketUrl
+    const { requireAuth = true, token: providedToken } = options || {}
 
-    ws.value = new WebSocket(wsUrl)
+    try {
+      // Connect to WebSocket
+      ws.value = new WebSocket(config.public.directus.websocketUrl)
 
-    ws.value.onopen = () => {
-      connected.value = true
-      console.log('WebSocket connected')
-    }
+      ws.value.onopen = async () => {
+        connected.value = true
+        console.log('WebSocket opened')
 
-    ws.value.onclose = () => {
-      connected.value = false
-      console.log('WebSocket disconnected')
-      
-      // Reconnect after 5 seconds
-      setTimeout(() => connect(), 5000)
-    }
-
-    ws.value.onerror = (error) => {
-      console.error('WebSocket error:', error)
-    }
-
-    ws.value.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        handleMessage(data)
-      } catch (error) {
-        console.error('Failed to parse WebSocket message:', error)
+        // Handle authentication if required
+        if (requireAuth) {
+          try {
+            // Use provided token or fetch from server
+            const token = providedToken || (await $fetch('/api/websocket/token')).token
+            
+            ws.value?.send(JSON.stringify({
+              type: 'auth',
+              access_token: token
+            }))
+          } catch (error) {
+            console.error('Failed to get auth token:', error)
+            ws.value?.close()
+          }
+        } else {
+          // Mark as authenticated for public access
+          authenticated.value = true
+        }
       }
+
+      ws.value.onclose = () => {
+        connected.value = false
+        authenticated.value = false
+        console.log('WebSocket disconnected')
+        
+        // Reconnect after 5 seconds
+        setTimeout(() => connect(options), 5000)
+      }
+
+      ws.value.onerror = (error) => {
+        console.error('WebSocket error:', error)
+      }
+
+      ws.value.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          handleMessage(data)
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to create WebSocket:', error)
     }
   }
 
@@ -52,12 +79,27 @@ export const useDirectusRealtime = () => {
    * Handle incoming messages
    */
   const handleMessage = (data: any) => {
-    const { type, event, data: messageData } = data
+    // Handle auth response
+    if (data.type === 'auth') {
+      if (data.status === 'ok') {
+        authenticated.value = true
+        console.log('WebSocket authenticated')
+      } else {
+        console.error('WebSocket auth failed:', data.error)
+        ws.value?.close()
+      }
+      return
+    }
 
-    if (type === 'subscription' && event) {
-      const callbacks = subscriptions.value.get(event)
-      if (callbacks) {
-        callbacks.forEach(callback => callback(messageData))
+    // Handle subscription messages
+    if (data.type === 'subscription') {
+      const { event, data: messageData } = data
+      
+      if (event && event !== 'init') {
+        const callbacks = subscriptions.value.get(`*:${event}`)
+        if (callbacks) {
+          callbacks.forEach(callback => callback(messageData))
+        }
       }
     }
   }
@@ -74,7 +116,7 @@ export const useDirectusRealtime = () => {
     }
   ) => {
     const event = options?.event || '*'
-    const subscriptionKey = `${collection}:${event}`
+    const subscriptionKey = `*:${event}`
 
     if (!subscriptions.value.has(subscriptionKey)) {
       subscriptions.value.set(subscriptionKey, new Set())
@@ -82,15 +124,22 @@ export const useDirectusRealtime = () => {
 
     subscriptions.value.get(subscriptionKey)?.add(callback)
 
-    // Send subscription message
-    if (connected.value && ws.value) {
-      ws.value.send(JSON.stringify({
-        type: 'subscribe',
-        collection,
-        event,
-        query: options?.query,
-      }))
+    // Send subscription message once authenticated
+    const sendSubscription = () => {
+      if (authenticated.value && ws.value?.readyState === WebSocket.OPEN) {
+        ws.value.send(JSON.stringify({
+          type: 'subscribe',
+          collection,
+          event: options?.event,
+          query: options?.query,
+        }))
+      } else {
+        // Wait for authentication
+        setTimeout(sendSubscription, 100)
+      }
     }
+
+    sendSubscription()
 
     // Return unsubscribe function
     return () => {
@@ -100,11 +149,11 @@ export const useDirectusRealtime = () => {
         subscriptions.value.delete(subscriptionKey)
         
         // Send unsubscribe message
-        if (connected.value && ws.value) {
+        if (authenticated.value && ws.value) {
           ws.value.send(JSON.stringify({
             type: 'unsubscribe',
             collection,
-            event,
+            event: options?.event,
           }))
         }
       }
@@ -120,6 +169,7 @@ export const useDirectusRealtime = () => {
       ws.value = null
     }
     connected.value = false
+    authenticated.value = false
     subscriptions.value.clear()
   }
 
@@ -130,6 +180,7 @@ export const useDirectusRealtime = () => {
 
   return {
     connected,
+    authenticated,
     connect,
     disconnect,
     subscribe,
