@@ -41,8 +41,6 @@ const serverFiles = {
   rest, 
   authentication, 
   staticToken,
-  realtime,
-  graphql
 } from '@directus/sdk'
 
 function createBaseClient(url: string) {
@@ -93,8 +91,8 @@ export async function getUserFromToken(token: string) {
 }
 `,
 
-  "server/api/auth/login.post.ts": `import { createServerDirectus } from '~/server/utils/directus'
-import { readMe } from '@directus/sdk'
+  "server/api/auth/login.post.ts": `import { readMe } from '@directus/sdk'
+import { createServerDirectus } from '../../utils/directus'
 
 export default defineEventHandler(async (event) => {
   const { email, password } = await readBody(event)
@@ -168,8 +166,8 @@ export default defineEventHandler(async (event) => {
 })
 `,
 
-  "server/api/auth/refresh.post.ts": `import { createServerDirectus } from '~/server/utils/directus'
-import { refresh, readMe } from '@directus/sdk'
+  "server/api/auth/refresh.post.ts": `import { refresh, readMe } from '@directus/sdk'
+import { createServerDirectus } from '../../utils/directus'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)
@@ -227,8 +225,8 @@ export default defineEventHandler(async (event) => {
 })
 `,
 
-  "server/api/auth/register.post.ts": `import { getAdminDirectus } from '~/server/utils/directus'
-import { createUser } from '@directus/sdk'
+  "server/api/auth/register.post.ts": `import { createUser } from '@directus/sdk'
+import { getAdminDirectus } from '../../utils/directus'
 
 export default defineEventHandler(async (event) => {
   const { email, password, firstName, lastName } = await readBody(event)
@@ -270,8 +268,8 @@ export default defineEventHandler(async (event) => {
 })
 `,
 
-  "server/api/auth/github.get.ts": `import { getAdminDirectus } from '~/server/utils/directus'
-import { readUsers, createUser } from '@directus/sdk'
+  "server/api/auth/github.get.ts": `import { readUsers, createUser } from '@directus/sdk'
+import { getAdminDirectus } from '../../utils/directus'
 
 export default defineOAuthGitHubEventHandler({
   config: {
@@ -334,8 +332,8 @@ export default defineOAuthGitHubEventHandler({
 })
 `,
 
-  "server/api/auth/google.get.ts": `import { getAdminDirectus } from '~/server/utils/directus'
-import { readUsers, createUser } from '@directus/sdk'
+  "server/api/auth/google.get.ts": `import { readUsers, createUser } from '@directus/sdk'
+import { getAdminDirectus } from '../../utils/directus'
 
 export default defineOAuthGoogleEventHandler({
   config: {
@@ -398,9 +396,7 @@ export default defineOAuthGoogleEventHandler({
 })
 `,
 
-  "server/api/directus/[...path].ts": `import { createServerDirectusWithToken } from '~/server/utils/directus'
-
-export default defineEventHandler(async (event) => {
+  "server/api/directus/[...path].ts": `export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
   
   const path = event.context.params?.path || ''
@@ -463,8 +459,8 @@ export default defineEventHandler(async (event) => {
 })
 `,
 
-  "server/api/files/upload.post.ts": `import { getAdminDirectus } from '~/server/utils/directus'
-import { uploadFiles } from '@directus/sdk'
+  "server/api/files/upload.post.ts": `import { uploadFiles } from '@directus/sdk'
+import { getAdminDirectus } from '../../utils/directus'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)
@@ -608,9 +604,10 @@ Object.entries(serverFiles).forEach(([filePath, content]) => {
 });
 
 log("\n✨ Server setup complete!\n", "green");
-log("All files created. You can now:", "blue");
-log("1. npm install");
+log("All files created with proper relative imports!", "blue");
+log("\nYou can now:", "blue");
+log("1. pnpm install");
 log("2. git add .");
-log('3. git commit -m "Initial layer setup"');
+log('3. git commit -m "Fix server imports"');
 log("4. git push");
 log("");

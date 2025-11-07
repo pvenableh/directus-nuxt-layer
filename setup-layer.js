@@ -38,6 +38,7 @@ function writeFile(filePath, content) {
   fs.writeFileSync(filePath, content);
   log(`✓ Created file: ${filePath}`, "green");
 }
+
 // File contents
 const files = {
   ".gitignore": `node_modules/
@@ -58,7 +59,7 @@ Reusable Nuxt layer for Directus integration with authentication, CRUD, files, r
 ## Installation
 
 \`\`\`bash
-npm install github:your-username/directus-nuxt-layer
+pnpm install github:pvenableh/directus-nuxt-layer
 \`\`\`
 
 ## Usage
@@ -82,7 +83,7 @@ export default defineNuxtConfig({
 
 ## Documentation
 
-See the main guide for full documentation and examples.
+See GUIDE.md for full documentation and examples.
 `,
 
   "package.json": `{
@@ -90,9 +91,6 @@ See the main guide for full documentation and examples.
   "version": "1.0.0",
   "description": "Reusable Directus + Nuxt auth layer",
   "type": "module",
-  "exports": {
-    ".": "./nuxt.config.ts"
-  },
   "main": "./nuxt.config.ts",
   "files": [
     "composables",
@@ -109,10 +107,6 @@ See the main guide for full documentation and examples.
   "dependencies": {
     "nuxt-auth-utils": "^0.5.25",
     "@directus/sdk": "^20.1.0"
-  },
-  "devDependencies": {
-    "nuxt": "^3.15.0",
-    "directus-typescript-gen": "^1.0.0"
   },
   "peerDependencies": {
     "nuxt": "^3.0.0"
@@ -1033,7 +1027,9 @@ Object.entries(files).forEach(([filePath, content]) => {
 
 log("\n✨ Setup complete!\n", "green");
 log("Next steps:", "blue");
-log("1. Run: npm install");
-log("2. Create server files (run: node setup-layer.js server)");
-log("3. Push to your repository");
+log("1. Run: pnpm install");
+log("2. Create server files: node setup-server.js");
+log("3. git add .");
+log('4. git commit -m "Update layer setup"');
+log("5. git push");
 log("");
