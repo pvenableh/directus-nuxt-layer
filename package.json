@@ -20,12 +20,12 @@
     "generate:types": "node scripts/generate-types.js"
   },
   "dependencies": {
-    "nuxt-auth-utils": "^0.4.8",
+    "nuxt-auth-utils": "^0.5.25",
     "@directus/sdk": "^20.1.0"
   },
   "devDependencies": {
     "nuxt": "^3.15.0",
-    "directus-sdk-typegen": "^1.0.0"
+    "directus-typescript-gen": "^1.0.0"
   },
   "peerDependencies": {
     "nuxt": "^3.0.0"
