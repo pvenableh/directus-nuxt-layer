@@ -1,5 +1,5 @@
-import { createServerDirectus } from '~/server/utils/directus'
 import { readMe } from '@directus/sdk'
+import { createServerDirectus } from '../../utils/directus'
 
 export default defineEventHandler(async (event) => {
   const { email, password } = await readBody(event)

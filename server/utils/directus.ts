@@ -3,8 +3,6 @@ import {
   rest, 
   authentication, 
   staticToken,
-  realtime,
-  graphql
 } from '@directus/sdk'
 
 function createBaseClient(url: string) {

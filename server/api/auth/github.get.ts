@@ -1,5 +1,5 @@
-import { getAdminDirectus } from '~/server/utils/directus'
 import { readUsers, createUser } from '@directus/sdk'
+import { getAdminDirectus } from '../../utils/directus'
 
 export default defineOAuthGitHubEventHandler({
   config: {

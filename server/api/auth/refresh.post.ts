@@ -1,5 +1,5 @@
-import { createServerDirectus } from '~/server/utils/directus'
 import { refresh, readMe } from '@directus/sdk'
+import { createServerDirectus } from '../../utils/directus'
 
 export default defineEventHandler(async (event) => {
   const session = await getUserSession(event)

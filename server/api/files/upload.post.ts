@@ -1,5 +1,5 @@
-import { getAdminDirectus } from '~/server/utils/directus'
 import { uploadFiles } from '@directus/sdk'
+import { getAdminDirectus } from '../../utils/directus'
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event)

@@ -1,5 +1,5 @@
-import { getAdminDirectus } from '~/server/utils/directus'
 import { createUser } from '@directus/sdk'
+import { getAdminDirectus } from '../../utils/directus'
 
 export default defineEventHandler(async (event) => {
   const { email, password, firstName, lastName } = await readBody(event)

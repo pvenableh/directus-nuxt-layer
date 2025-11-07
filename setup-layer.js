@@ -52,40 +52,6 @@ dist/
 .DS_Store
 `,
 
-  "README.md": `# Directus Nuxt Layer
-
-Reusable Nuxt layer for Directus integration with authentication, CRUD, files, realtime, notifications, and comments.
-
-## Installation
-
-\`\`\`bash
-pnpm install github:pvenableh/directus-nuxt-layer
-\`\`\`
-
-## Usage
-
-\`\`\`typescript
-// nuxt.config.ts
-export default defineNuxtConfig({
-  extends: ['directus-nuxt-layer']
-})
-\`\`\`
-
-## Features
-
-- ✅ Authentication (email/password + OAuth)
-- ✅ CRUD operations
-- ✅ File uploads
-- ✅ Real-time subscriptions
-- ✅ Notifications
-- ✅ Comments
-- ✅ Auto-generated TypeScript types
-
-## Documentation
-
-See GUIDE.md for full documentation and examples.
-`,
-
   "package.json": `{
   "name": "directus-nuxt-layer",
   "version": "1.0.0",
@@ -98,12 +64,8 @@ See GUIDE.md for full documentation and examples.
     "middleware",
     "plugins",
     "types",
-    "scripts",
     "nuxt.config.ts"
   ],
-  "scripts": {
-    "generate:types": "node scripts/generate-types.js"
-  },
   "dependencies": {
     "nuxt-auth-utils": "^0.5.25",
     "@directus/sdk": "^20.1.0"
