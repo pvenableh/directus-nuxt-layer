@@ -6,7 +6,7 @@ This comprehensive guide covers everything you need to know about setting up and
 
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Initial Setup](#initial-setup)
+3. [Installation](#installation)
 4. [Environment Configuration](#environment-configuration)
 5. [Using in Parent Project](#using-in-parent-project)
 6. [Authentication](#authentication)
@@ -21,7 +21,7 @@ This comprehensive guide covers everything you need to know about setting up and
 
 ## Overview
 
-The Directus Nuxt Layer provides a complete, production-ready integration between Directus and Nuxt 3. It's designed as a **reusable layer** that uses **peer dependencies** to avoid package duplication.
+The Directus Nuxt Layer provides a complete, production-ready integration between Directus and Nuxt 3. It's designed as a **reusable npm package** installed directly from GitHub that uses **peer dependencies** to avoid package duplication.
 
 ### What's Included
 
@@ -40,6 +40,7 @@ The Directus Nuxt Layer provides a complete, production-ready integration betwee
 - **Secure**: Tokens managed server-side only
 - **Modular**: Use only what you need
 - **Production Ready**: Battle-tested patterns
+- **Easy Updates**: Install directly from GitHub
 
 ---
 
@@ -48,6 +49,7 @@ The Directus Nuxt Layer provides a complete, production-ready integration betwee
 ```
 ┌─────────────────────────────────────────────┐
 │           Your Parent Project               │
+│  • Installs from GitHub                     │
 │  • Installs @directus/sdk                   │
 │  • Installs nuxt-auth-utils                 │
 │  • Extends from layer                       │
@@ -56,6 +58,7 @@ The Directus Nuxt Layer provides a complete, production-ready integration betwee
                    ▼
 ┌─────────────────────────────────────────────┐
 │         Directus Nuxt Layer                 │
+│  (npm package from GitHub)                  │
 │  • Uses parent's dependencies (peer deps)   │
 │  • Provides composables                     │
 │  • Provides server endpoints                │
@@ -71,44 +74,9 @@ The Directus Nuxt Layer provides a complete, production-ready integration betwee
 └─────────────────────────────────────────────┘
 ```
 
-### File Structure
-
-```
-directus-layer/
-├── composables/
-│   ├── useDirectus.ts           # Base client
-│   ├── useDirectusAuth.ts       # Authentication
-│   ├── useDirectusItems.ts      # CRUD operations
-│   ├── useDirectusFiles.ts      # File handling
-│   ├── useDirectusRealtime.ts   # WebSocket
-│   ├── useDirectusNotifications.ts
-│   └── useDirectusComments.ts
-├── server/
-│   ├── utils/
-│   │   └── directus.ts          # Server utilities
-│   ├── api/
-│   │   ├── auth/                # Auth endpoints
-│   │   ├── files/               # File endpoints
-│   │   ├── websocket/           # WebSocket token
-│   │   └── directus/            # Directus proxy
-│   ├── middleware/
-│   │   ├── auth.ts              # Protected routes
-│   │   └── guest.ts             # Guest-only routes
-│   └── plugins/
-│       └── auth-refresh.client.ts
-├── types/
-│   └── index.d.ts               # TypeScript definitions
-├── nuxt.config.ts               # Layer configuration
-├── package.json                 # Peer dependencies
-├── README.md                    # Quick start guide
-└── GUIDE.md                     # This file!
-```
-
 ---
 
-## Initial Setup
-
-This layer comes pre-configured with all necessary files and composables. Follow these steps to integrate it into your parent project.
+## Installation
 
 ### Requirements
 
@@ -116,72 +84,100 @@ Before using this layer, ensure you have:
 - Node.js 18+ installed
 - A Nuxt 3 project
 - A Directus instance (local or hosted)
+- GitHub access (public or private repo)
 
-### Step 1: Verify Layer Structure
-
-Your layer directory should contain:
-
-```
-directus-layer/
-├── composables/          # Auto-imported composables
-├── server/              # API endpoints & middleware
-├── middleware/          # Route protection
-├── plugins/             # Auto-refresh plugin
-├── types/               # TypeScript definitions
-├── nuxt.config.ts       # Layer configuration
-├── package.json         # Peer dependencies
-├── .env.example         # Environment template
-├── README.md           # This file
-└── GUIDE.md            # Complete guide
-```
-
-### Step 2: Install Layer Dependencies
-
-The layer uses peer dependencies to avoid duplication. First, install the layer's dev dependencies:
+### Step 1: Install the Layer
 
 ```bash
-cd directus-layer
-pnpm install
+pnpm add github:hue-studios/directus-nuxt-layer
 ```
 
-This installs minimal development dependencies for the layer itself.
+**For specific versions or branches:**
+
+```bash
+# Specific version tag
+pnpm add github:hue-studios/directus-nuxt-layer#v1.2.0
+
+# Specific branch
+pnpm add github:hue-studios/directus-nuxt-layer#main
+
+# Specific commit
+pnpm add github:hue-studios/directus-nuxt-layer#abc1234
+```
+
+### Step 2: Install Peer Dependencies
+
+The layer requires these packages in your parent project:
+
+```bash
+pnpm add @directus/sdk@latest nuxt-auth-utils
+```
+
+### Step 3: Add Layer to nuxt.config.ts
+
+```typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  extends: ['directus-nuxt-layer']
+})
+```
+
+### Step 4: Configure Environment Variables
+
+Create a `.env` file in your parent project:
+
+```bash
+cp node_modules/directus-nuxt-layer/.env.example .env
+```
+
+Or create it manually with:
+
+```env
+# Required
+DIRECTUS_URL=http://localhost:8055
+DIRECTUS_WS_URL=ws://localhost:8055
+
+# Recommended
+DIRECTUS_STATIC_TOKEN=your_static_token_here
+PUBLIC_APP_URL=http://localhost:3000
+
+# Optional
+DIRECTUS_ADMIN_EMAIL=admin@example.com
+DIRECTUS_ADMIN_PASSWORD=your_password
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+```
+
+### Step 5: Start Development
+
+```bash
+pnpm dev
+```
 
 ---
 
 ## Environment Configuration
 
-### Layer `.env` File
-
-Create a `.env` file in your layer directory (copy from `.env.example`):
+### Required Variables
 
 ```env
-# ===== REQUIRED =====
-
 # Your Directus instance URL
 DIRECTUS_URL=http://localhost:8055
 
 # WebSocket URL (usually same as DIRECTUS_URL with ws:// or wss://)
 DIRECTUS_WS_URL=ws://localhost:8055
+```
 
-# ===== RECOMMENDED =====
+### Recommended Variables
 
+```env
 # Static token for server operations and public realtime
 DIRECTUS_STATIC_TOKEN=your_static_token_here
 
 # Your app's public URL (for email links in password resets)
 PUBLIC_APP_URL=http://localhost:3000
-
-# ===== OPTIONAL =====
-
-# Admin credentials (fallback for server operations)
-DIRECTUS_ADMIN_EMAIL=admin@example.com
-DIRECTUS_ADMIN_PASSWORD=your_password
-
-# OAuth providers
-GITHUB_CLIENT_ID=your_github_client_id
-GITHUB_CLIENT_SECRET=your_github_client_secret
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
 ```
 
 ### Getting a Static Token
@@ -193,57 +189,27 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 5. Set permissions (usually Admin for full access)
 6. Copy the token to your `.env` file
 
-### Important Notes
+### Optional Variables
 
-- ⚠️ Never commit `.env` files to git
-- ✅ Keep `.env.example` updated as a template
-- ✅ Static token stays server-side only (secure)
-- ✅ `PUBLIC_APP_URL` is needed for password reset emails
+```env
+# Admin credentials (fallback for server operations)
+DIRECTUS_ADMIN_EMAIL=admin@example.com
+DIRECTUS_ADMIN_PASSWORD=your_password
+
+# OAuth providers
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+```
 
 ---
 
 ## Using in Parent Project
 
-### Step 1: Install Required Dependencies
+### Composables are Auto-Imported
 
-Your parent project **must** install the peer dependencies:
-
-```bash
-# In your parent project
-pnpm add @directus/sdk@latest nuxt-auth-utils
-```
-
-### Step 2: Add Layer to nuxt.config.ts
-
-```typescript
-// nuxt.config.ts in parent project
-export default defineNuxtConfig({
-  extends: [
-    './layers/directus-layer'  // Path to your layer
-  ],
-  
-  // Optional: Override layer configuration
-  runtimeConfig: {
-    directus: {
-      url: process.env.DIRECTUS_URL,
-      // ... other overrides
-    }
-  }
-})
-```
-
-### Step 3: Copy Environment Variables
-
-Copy the `.env.example` from the layer to your parent project and configure it:
-
-```bash
-cp layers/directus-layer/.env.example .env
-# Edit .env with your actual values
-```
-
-### Step 4: Start Using Composables
-
-All composables are automatically available in your parent project:
+All composables are automatically available in your parent project - **no imports needed**:
 
 ```vue
 <script setup>
@@ -252,6 +218,40 @@ const { login, user, logout } = useDirectusAuth()
 const { fetchItems, create } = useDirectusItems()
 const { subscribe } = useDirectusRealtime()
 </script>
+```
+
+### Override Layer Configuration
+
+You can override any layer configuration in your parent project:
+
+```typescript
+// nuxt.config.ts
+export default defineNuxtConfig({
+  extends: ['directus-nuxt-layer'],
+  
+  // Override configuration
+  runtimeConfig: {
+    directus: {
+      url: process.env.CUSTOM_DIRECTUS_URL,
+      // ... other overrides
+    }
+  }
+})
+```
+
+### Update the Layer
+
+To update to the latest version:
+
+```bash
+pnpm update directus-nuxt-layer
+```
+
+Or reinstall from GitHub:
+
+```bash
+pnpm remove directus-nuxt-layer
+pnpm add github:hue-studios/directus-nuxt-layer
 ```
 
 ---

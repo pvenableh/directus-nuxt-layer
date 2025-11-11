@@ -40,19 +40,27 @@
 
 ## 🚀 Quick Start
 
-### 1. Install in Parent Project
+### 1. Install from GitHub
 
 ```bash
-# Install required peer dependencies
-pnpm add @directus/sdk@latest nuxt-auth-utils
+pnpm add github:hue-studios/directus-nuxt-layer
+```
 
-# Add layer to nuxt.config.ts
+### 2. Add to nuxt.config.ts
+
+```typescript
 export default defineNuxtConfig({
-  extends: ['./layers/directus-layer']
+  extends: ['directus-nuxt-layer']
 })
 ```
 
-### 2. Configure Environment
+### 3. Install Peer Dependencies
+
+```bash
+pnpm add @directus/sdk@latest nuxt-auth-utils
+```
+
+### 4. Configure Environment
 
 ```env
 DIRECTUS_URL=http://localhost:8055
@@ -61,7 +69,7 @@ DIRECTUS_STATIC_TOKEN=your_static_token_here
 PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### 3. Start Using
+### 5. Start Using
 
 ```vue
 <script setup>
@@ -89,6 +97,21 @@ This layer requires the following packages in your parent project:
 
 **Why peer dependencies?**  
 Using peer dependencies prevents package duplication and keeps your bundle size small. Your parent project provides these packages, and the layer uses them from your `node_modules`.
+
+## 🔄 Updating
+
+To update to the latest version:
+
+```bash
+pnpm update directus-nuxt-layer
+```
+
+Or to a specific version/branch:
+
+```bash
+pnpm add github:hue-studios/directus-nuxt-layer#v1.2.0
+pnpm add github:hue-studios/directus-nuxt-layer#main
+```
 
 ## Quick Reference
 
@@ -197,14 +220,15 @@ const imageUrl = getFileUrl(fileId, {
 await deleteFile(fileId)
 ```
 
-## 🏗️ Architecture
+## 🗂️ Architecture
 
 ```
 ┌─────────────────────────────────────┐
 │       Your Parent Project           │
-│  • Provides peer dependencies       │
-│  • Extends this layer               │
-│  • Uses auto-imported composables   │
+│  • Installs from GitHub              │
+│  • Provides peer dependencies        │
+│  • Extends this layer                │
+│  • Uses auto-imported composables    │
 └──────────────┬──────────────────────┘
                │
                ▼
@@ -284,7 +308,7 @@ See `.env.example` for all available options.
 ## 🐛 Troubleshooting
 
 ### "Module not found: @directus/sdk"
-→ Install peer dependencies in parent project: `pnpm add @directus/sdk@latest nuxt-auth-utils`
+→ Install peer dependencies: `pnpm add @directus/sdk@latest nuxt-auth-utils`
 
 ### "No authentication token available"
 → Add `DIRECTUS_STATIC_TOKEN` to your `.env` file
