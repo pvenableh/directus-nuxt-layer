@@ -2,7 +2,7 @@ export default defineNuxtConfig({
   modules: ['nuxt-auth-utils'],
   
   runtimeConfig: {
-    // Server-only
+    // Server-only (never exposed to client)
     directus: {
       url: process.env.DIRECTUS_URL || 'http://localhost:8055',
       adminEmail: process.env.DIRECTUS_ADMIN_EMAIL,
@@ -21,12 +21,13 @@ export default defineNuxtConfig({
       },
     },
     
-    // Public
+    // Public (available on both server and client)
     public: {
       directus: {
         url: process.env.DIRECTUS_URL || 'http://localhost:8055',
         websocketUrl: process.env.DIRECTUS_WS_URL || 'ws://localhost:8055',
-      }
+      },
+      appUrl: process.env.PUBLIC_APP_URL || 'http://localhost:3000',
     }
   },
   

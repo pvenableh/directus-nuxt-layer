@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Directus Nuxt Layer - Server Files Setup
+ * Directus Nuxt Layer - Server Files Setup (COMPLETE VERSION)
+ * Includes: Auth, OAuth, Password Reset, User Invitations, Realtime
  * Run with: node setup-server.js
  */
 
@@ -268,6 +269,183 @@ export default defineEventHandler(async (event) => {
 })
 `,
 
+  "server/api/auth/password-request.post.ts": `import { passwordRequest } from '@directus/sdk'
+import { getAdminDirectus } from '../../utils/directus'
+
+export default defineEventHandler(async (event) => {
+  const { email } = await readBody(event)
+
+  if (!email) {
+    throw createError({
+      statusCode: 400,
+      message: 'Email is required'
+    })
+  }
+
+  try {
+    const config = useRuntimeConfig()
+    const directus = await getAdminDirectus()
+    
+    // Send password reset email
+    await directus.request(
+      passwordRequest(email, \`\${config.public.appUrl}/auth/reset-password\`)
+    )
+
+    // Always return success (don't reveal if email exists)
+    return {
+      success: true,
+      message: 'If an account exists, a password reset email was sent'
+    }
+  } catch (error: any) {
+    // Don't expose errors - always return success for security
+    return {
+      success: true,
+      message: 'If an account exists, a password reset email was sent'
+    }
+  }
+})
+`,
+
+  "server/api/auth/password-reset.post.ts": `import { passwordReset } from '@directus/sdk'
+import { getAdminDirectus } from '../../utils/directus'
+
+export default defineEventHandler(async (event) => {
+  const { token, password } = await readBody(event)
+
+  if (!token || !password) {
+    throw createError({
+      statusCode: 400,
+      message: 'Token and password are required'
+    })
+  }
+
+  try {
+    const directus = await getAdminDirectus()
+    
+    await directus.request(passwordReset(token, password))
+
+    return {
+      success: true,
+      message: 'Password reset successfully'
+    }
+  } catch (error: any) {
+    throw createError({
+      statusCode: 400,
+      message: error.message || 'Password reset failed. Token may be invalid or expired.'
+    })
+  }
+})
+`,
+
+  "server/api/auth/invite.post.ts": `import { inviteUser } from '@directus/sdk'
+import { getAdminDirectus } from '../../utils/directus'
+
+export default defineEventHandler(async (event) => {
+  const session = await requireUserSession(event)
+  
+  // Check if user has permission to invite
+  if (session.user.role !== 'administrator') {
+    throw createError({
+      statusCode: 403,
+      message: 'Only administrators can invite users'
+    })
+  }
+
+  const { email, role } = await readBody(event)
+
+  if (!email) {
+    throw createError({
+      statusCode: 400,
+      message: 'Email is required'
+    })
+  }
+
+  try {
+    const config = useRuntimeConfig()
+    const directus = await getAdminDirectus()
+    
+    await directus.request(
+      inviteUser(
+        email,
+        role || 'authenticated',
+        \`\${config.public.appUrl}/auth/accept-invite\`
+      )
+    )
+
+    return {
+      success: true,
+      message: 'Invitation sent successfully'
+    }
+  } catch (error: any) {
+    throw createError({
+      statusCode: 400,
+      message: error.message || 'Failed to send invitation'
+    })
+  }
+})
+`,
+
+  "server/api/auth/accept-invite.post.ts": `import { acceptUserInvite, readMe } from '@directus/sdk'
+import { createServerDirectus } from '../../utils/directus'
+
+export default defineEventHandler(async (event) => {
+  const { token, password } = await readBody(event)
+
+  if (!token || !password) {
+    throw createError({
+      statusCode: 400,
+      message: 'Token and password are required'
+    })
+  }
+
+  try {
+    const directus = createServerDirectus()
+    
+    // Accept the invitation
+    const authResult = await directus.request(acceptUserInvite(token, password))
+    
+    // Get user info
+    directus.setToken(authResult.access_token)
+    const user = await directus.request(readMe())
+
+    // Create session
+    const expiresAt = Date.now() + (authResult.expires * 1000)
+
+    await setUserSession(event, {
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: typeof user.role === 'object' ? user.role.name : user.role,
+        avatar: user.avatar,
+        provider: 'local',
+      },
+      loggedInAt: Date.now(),
+      expiresAt,
+    }, {
+      secure: {
+        directusAccessToken: authResult.access_token,
+        directusRefreshToken: authResult.refresh_token,
+      }
+    })
+
+    return {
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+      }
+    }
+  } catch (error: any) {
+    throw createError({
+      statusCode: 400,
+      message: error.message || 'Failed to accept invitation'
+    })
+  }
+})
+`,
+
   "server/api/auth/github.get.ts": `import { readUsers, createUser } from '@directus/sdk'
 import { getAdminDirectus } from '../../utils/directus'
 
@@ -508,6 +686,53 @@ export default defineEventHandler(async (event) => {
 })
 `,
 
+  "server/api/websocket/token.get.ts": `export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig()
+  const session = await getUserSession(event)
+  
+  // Priority 1: Use user's access token if logged in
+  if (session?.secure?.directusAccessToken) {
+    return {
+      token: session.secure.directusAccessToken,
+      type: 'user'
+    }
+  }
+  
+  // Priority 2: Fall back to static token for public/anonymous access
+  if (config.directus.staticToken) {
+    return {
+      token: config.directus.staticToken,
+      type: 'static'
+    }
+  }
+  
+  // Priority 3: Try to get admin token as last resort
+  if (config.directus.adminEmail && config.directus.adminPassword) {
+    try {
+      const { createServerDirectus } = await import('../../utils/directus')
+      const directus = createServerDirectus()
+      const authResult = await directus.login(
+        config.directus.adminEmail,
+        config.directus.adminPassword
+      )
+      
+      return {
+        token: authResult.access_token,
+        type: 'admin'
+      }
+    } catch (error) {
+      console.error('Failed to get admin token:', error)
+    }
+  }
+  
+  // No token available
+  throw createError({
+    statusCode: 401,
+    message: 'No authentication token available'
+  })
+})
+`,
+
   "middleware/auth.ts": `export default defineNuxtRouteMiddleware((to, from) => {
   const { loggedIn } = useUserSession()
 
@@ -536,6 +761,7 @@ export default defineEventHandler(async (event) => {
     if (expiresAt) {
       const timeUntilExpiry = expiresAt - Date.now()
       
+      // Refresh if expiring in less than 5 minutes
       if (timeUntilExpiry < 5 * 60 * 1000) {
         try {
           await refreshToken()
@@ -546,10 +772,13 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Check every minute
   const interval = setInterval(checkAndRefresh, 60 * 1000)
   
+  // Check immediately
   checkAndRefresh()
 
+  // Cleanup on unload
   if (import.meta.client) {
     window.addEventListener('beforeunload', () => {
       clearInterval(interval)
@@ -557,57 +786,35 @@ export default defineEventHandler(async (event) => {
   }
 })
 `,
-
-  "scripts/generate-types.js": `const { execSync } = require('child_process');
-const fs = require('fs');
-require('dotenv').config();
-
-const targetFile = './types/directus-schema.ts';
-const backupFile = './types/directus-schema.backup.ts';
-
-console.log('🚀 Generating Directus types...');
-
-if (fs.existsSync(targetFile)) {
-  fs.copyFileSync(targetFile, backupFile);
-  console.log('✅ Backed up existing types');
-}
-
-try {
-  execSync(
-    \`npx directus-sdk-typegen --url \${process.env.DIRECTUS_URL} --token \${process.env.DIRECTUS_STATIC_TOKEN} --output \${targetFile}\`,
-    { stdio: 'inherit' }
-  );
-  
-  console.log('✅ Types generated successfully!');
-  
-  if (fs.existsSync(backupFile)) {
-    fs.unlinkSync(backupFile);
-  }
-} catch (error) {
-  console.error('❌ Failed to generate types');
-  
-  if (fs.existsSync(backupFile)) {
-    fs.copyFileSync(backupFile, targetFile);
-    fs.unlinkSync(backupFile);
-    console.log('✅ Restored backup');
-  }
-  
-  process.exit(1);
-}
-`,
 };
 
-log("\n🚀 Setting up server files...\n", "blue");
+log(
+  "\n🚀 Setting up COMPLETE server files with all auth features...\n",
+  "blue"
+);
 
 Object.entries(serverFiles).forEach(([filePath, content]) => {
   writeFile(filePath, content);
 });
 
-log("\n✨ Server setup complete!\n", "green");
-log("All files created with proper relative imports!", "blue");
-log("\nYou can now:", "blue");
+log("\n✨ Complete server setup finished!\n", "green");
+log("\n📦 What was created:", "blue");
+log("• ✅ Basic Auth (login, logout, register, refresh)");
+log("• ✅ OAuth (GitHub, Google)");
+log("• ✅ Password Reset (request + reset)");
+log("• ✅ User Invitations (invite + accept)");
+log("• ✅ File Upload");
+log("• ✅ Directus Proxy");
+log("• ✅ WebSocket Token (for realtime)");
+log("• ✅ Middleware (auth, guest)");
+log("• ✅ Auto-refresh Plugin");
+
+log("\n⚠️  Don't forget to add to your .env:", "yellow");
+log("PUBLIC_APP_URL=http://localhost:3000  # For reset links");
+
+log("\n🔄 Next steps:", "blue");
 log("1. pnpm install");
-log("2. git add .");
-log('3. git commit -m "Fix server imports"');
-log("4. git push");
+log("2. Update your nuxt.config.ts with appUrl in runtimeConfig");
+log("3. Run setup-layer.js for composables");
+log("4. Configure environment variables");
 log("");

@@ -1,188 +1,164 @@
-import { ref, onUnmounted } from 'vue'
+import { createDirectus, staticToken, realtime, rest } from '@directus/sdk'
+import type { DirectusClient } from '@directus/sdk'
 
+let realtimeClient: DirectusClient<any> | null = null
+let connectionPromise: Promise<void> | null = null
+
+/**
+ * Directus Realtime composable
+ * 
+ * Authentication priority:
+ * 1. User token (if logged in)
+ * 2. Static token (from DIRECTUS_STATIC_TOKEN env)
+ * 3. No authentication (for public collections)
+ */
 export const useDirectusRealtime = () => {
   const config = useRuntimeConfig()
-  
-  const ws = ref<WebSocket | null>(null)
   const connected = ref(false)
-  const authenticated = ref(false)
-  const subscriptions = ref<Map<string, Set<Function>>>(new Map())
+  const error = ref<string | null>(null)
 
   /**
-   * Connect to WebSocket
-   * If requireAuth is true, fetches token from server
-   * If requireAuth is false, connects without authentication (for public collections)
+   * Get or create the realtime client (singleton)
    */
-  const connect = async (options?: {
-    requireAuth?: boolean
-    token?: string
-  }) => {
-    if (ws.value?.readyState === WebSocket.OPEN) return
-
-    const { requireAuth = true, token: providedToken } = options || {}
+  const getClient = async () => {
+    if (realtimeClient && connected.value) {
+      return realtimeClient
+    }
 
     try {
-      // Connect to WebSocket
-      ws.value = new WebSocket(config.public.directus.websocketUrl)
+      const baseClient = createDirectus(config.public.directus.url)
 
-      ws.value.onopen = async () => {
-        connected.value = true
-        console.log('WebSocket opened')
-
-        // Handle authentication if required
-        if (requireAuth) {
-          try {
-            // Use provided token or fetch from server
-            const token = providedToken || (await $fetch('/api/websocket/token')).token
-            
-            ws.value?.send(JSON.stringify({
-              type: 'auth',
-              access_token: token
-            }))
-          } catch (error) {
-            console.error('Failed to get auth token:', error)
-            ws.value?.close()
-          }
-        } else {
-          // Mark as authenticated for public access
-          authenticated.value = true
-        }
+      // Try to get a token from the server
+      let token: string | null = null
+      
+      try {
+        const tokenData = await $fetch('/api/websocket/token')
+        token = tokenData.token
+      } catch (tokenError) {
+        console.warn('No authentication token available, connecting without auth')
       }
 
-      ws.value.onclose = () => {
-        connected.value = false
-        authenticated.value = false
-        console.log('WebSocket disconnected')
-        
-        // Reconnect after 5 seconds
-        setTimeout(() => connect(options), 5000)
+      // Create client with token if available
+      if (token) {
+        realtimeClient = baseClient
+          .with(staticToken(token))
+          .with(rest())
+          .with(realtime())
+      } 
+      // Try without authentication for public collections
+      else {
+        realtimeClient = baseClient
+          .with(rest())
+          .with(realtime())
       }
 
-      ws.value.onerror = (error) => {
-        console.error('WebSocket error:', error)
-      }
-
-      ws.value.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          handleMessage(data)
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error)
-        }
-      }
-    } catch (error) {
-      console.error('Failed to create WebSocket:', error)
+      return realtimeClient
+    } catch (err: any) {
+      error.value = err.message
+      throw err
     }
   }
 
   /**
-   * Handle incoming messages
+   * Connect to Directus realtime
    */
-  const handleMessage = (data: any) => {
-    // Handle auth response
-    if (data.type === 'auth') {
-      if (data.status === 'ok') {
-        authenticated.value = true
-        console.log('WebSocket authenticated')
-      } else {
-        console.error('WebSocket auth failed:', data.error)
-        ws.value?.close()
-      }
-      return
+  const connect = async () => {
+    if (connectionPromise) {
+      return connectionPromise
     }
 
-    // Handle subscription messages
-    if (data.type === 'subscription') {
-      const { event, data: messageData } = data
-      
-      if (event && event !== 'init') {
-        const callbacks = subscriptions.value.get(`*:${event}`)
-        if (callbacks) {
-          callbacks.forEach(callback => callback(messageData))
-        }
+    connectionPromise = (async () => {
+      try {
+        const client = await getClient()
+        await client.connect()
+        connected.value = true
+        error.value = null
+      } catch (err: any) {
+        error.value = err.message
+        connected.value = false
+        throw err
+      } finally {
+        connectionPromise = null
       }
+    })()
+
+    return connectionPromise
+  }
+
+  /**
+   * Disconnect from realtime
+   */
+  const disconnect = async () => {
+    if (realtimeClient) {
+      try {
+        await realtimeClient.disconnect?.()
+      } catch (err) {
+        console.error('Error disconnecting:', err)
+      }
+      realtimeClient = null
+      connected.value = false
     }
   }
 
   /**
    * Subscribe to collection changes
    */
-  const subscribe = <T = any>(
+  const subscribe = async <T = any>(
     collection: string,
-    callback: (data: T) => void,
     options?: {
       event?: 'create' | 'update' | 'delete'
-      query?: Record<string, any>
+      query?: {
+        fields?: string[]
+        filter?: Record<string, any>
+        sort?: string[]
+        limit?: number
+      }
     }
   ) => {
-    const event = options?.event || '*'
-    const subscriptionKey = `*:${event}`
+    await connect()
+    
+    const client = await getClient()
+    
+    const subscription = await client.subscribe(collection, {
+      event: options?.event,
+      query: options?.query,
+    })
 
-    if (!subscriptions.value.has(subscriptionKey)) {
-      subscriptions.value.set(subscriptionKey, new Set())
-    }
-
-    subscriptions.value.get(subscriptionKey)?.add(callback)
-
-    // Send subscription message once authenticated
-    const sendSubscription = () => {
-      if (authenticated.value && ws.value?.readyState === WebSocket.OPEN) {
-        ws.value.send(JSON.stringify({
-          type: 'subscribe',
-          collection,
-          event: options?.event,
-          query: options?.query,
-        }))
-      } else {
-        // Wait for authentication
-        setTimeout(sendSubscription, 100)
-      }
-    }
-
-    sendSubscription()
-
-    // Return unsubscribe function
-    return () => {
-      subscriptions.value.get(subscriptionKey)?.delete(callback)
-      
-      if (subscriptions.value.get(subscriptionKey)?.size === 0) {
-        subscriptions.value.delete(subscriptionKey)
-        
-        // Send unsubscribe message
-        if (authenticated.value && ws.value) {
-          ws.value.send(JSON.stringify({
-            type: 'unsubscribe',
-            collection,
-            event: options?.event,
-          }))
-        }
-      }
-    }
+    return subscription
   }
 
   /**
-   * Disconnect WebSocket
+   * Send a message to create/update/delete items via WebSocket
    */
-  const disconnect = () => {
-    if (ws.value) {
-      ws.value.close()
-      ws.value = null
-    }
-    connected.value = false
-    authenticated.value = false
-    subscriptions.value.clear()
+  const sendMessage = async (message: {
+    collection: string
+    action: 'create' | 'update' | 'delete'
+    data?: any
+    id?: string | number
+  }) => {
+    await connect()
+    
+    const client = await getClient()
+    
+    return client.sendMessage({
+      type: 'items',
+      ...message,
+    })
   }
 
-  // Auto-cleanup on component unmount
+  /**
+   * Auto-cleanup on unmount
+   */
   onUnmounted(() => {
     disconnect()
   })
 
   return {
     connected,
-    authenticated,
+    error,
     connect,
     disconnect,
     subscribe,
+    sendMessage,
   }
 }

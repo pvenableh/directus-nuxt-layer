@@ -1,7 +1,7 @@
 {
   "name": "directus-nuxt-layer",
   "version": "1.0.0",
-  "description": "Reusable Directus + Nuxt auth layer",
+  "description": "Reusable Directus + Nuxt layer with auth and realtime",
   "type": "module",
   "main": "./nuxt.config.ts",
   "files": [
@@ -12,11 +12,14 @@
     "types",
     "nuxt.config.ts"
   ],
-  "dependencies": {
-    "nuxt-auth-utils": "^0.5.25",
-    "@directus/sdk": "^20.1.0"
-  },
   "peerDependencies": {
-    "nuxt": "^3.0.0"
+    "nuxt": "^3.0.0",
+    "@directus/sdk": "^20.0.0",
+    "nuxt-auth-utils": "^0.5.25"
+  },
+  "devDependencies": {
+    "nuxt": "^3.0.0",
+    "@directus/sdk": "^20.1.0",
+    "nuxt-auth-utils": "^0.5.25"
   }
 }

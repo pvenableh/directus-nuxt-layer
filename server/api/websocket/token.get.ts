@@ -10,11 +10,30 @@ export default defineEventHandler(async (event) => {
     }
   }
   
-  // Priority 2: Fall back to static token for public access
+  // Priority 2: Fall back to static token for public/anonymous access
   if (config.directus.staticToken) {
     return {
       token: config.directus.staticToken,
       type: 'static'
+    }
+  }
+  
+  // Priority 3: Try to get admin token as last resort
+  if (config.directus.adminEmail && config.directus.adminPassword) {
+    try {
+      const { createServerDirectus } = await import('../../utils/directus')
+      const directus = createServerDirectus()
+      const authResult = await directus.login(
+        config.directus.adminEmail,
+        config.directus.adminPassword
+      )
+      
+      return {
+        token: authResult.access_token,
+        type: 'admin'
+      }
+    } catch (error) {
+      console.error('Failed to get admin token:', error)
     }
   }
   

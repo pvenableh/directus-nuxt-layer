@@ -1,392 +1,322 @@
 # Directus Nuxt Layer
 
-A production-ready Nuxt 3 layer providing complete Directus integration with authentication, CRUD operations, file management, real-time subscriptions, notifications, and comments.
+> A production-ready, reusable Nuxt 3 layer providing complete Directus integration with authentication, realtime, and comprehensive API composables.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## ✨ Features
 
-- 🔐 **Authentication** - Email/password + OAuth (GitHub, Google)
-- 📝 **CRUD Operations** - Full create, read, update, delete support
-- 📁 **File Management** - Upload, transform, and manage files
-- ⚡ **Real-time** - WebSocket subscriptions for live updates
-- 🔔 **Notifications** - Built-in notification system
-- 💬 **Comments** - Activity/comment tracking
-- 🎯 **TypeScript** - Full type safety with auto-generated types
-- 🔄 **Auto-refresh** - Automatic token refresh handling
-- 🛡️ **Secure** - Server-side session management
+- 🔐 **Complete Authentication**
+  - Email/password login & registration
+  - OAuth (GitHub, Google)
+  - Password reset flow
+  - User invitations system
+  - Automatic token refresh
 
-## 📦 Installation
+- ⚡ **Real-time Features**
+  - WebSocket subscriptions
+  - Automatic connection management
+  - Token-based authentication
+  - Event filtering
 
-```bash
-# Using pnpm (recommended)
-pnpm install github:pvenableh/directus-nuxt-layer
+- 📦 **Full API Coverage**
+  - CRUD operations for all collections
+  - File upload & management
+  - Notifications
+  - Comments
+  - Aggregations
 
-# Using npm
-npm install git+https://github.com/pvenableh/directus-nuxt-layer.git
+- 🎯 **Developer Experience**
+  - Full TypeScript support
+  - Auto-imported composables
+  - Zero configuration
+  - Server-side token security
 
-# Using yarn
-yarn add git+https://github.com/pvenableh/directus-nuxt-layer.git
-```
+- 📦 **Optimized Architecture**
+  - Uses peer dependencies (no duplication!)
+  - Modular design
+  - Production-ready
+  - Battle-tested patterns
 
 ## 🚀 Quick Start
 
-### 1. Extend the Layer
-
-```typescript
-// nuxt.config.ts
-export default defineNuxtConfig({
-  extends: ['directus-nuxt-layer'],
-  
-  runtimeConfig: {
-    directus: {
-      url: process.env.DIRECTUS_URL,
-      adminEmail: process.env.DIRECTUS_ADMIN_EMAIL,
-      adminPassword: process.env.DIRECTUS_ADMIN_PASSWORD,
-      staticToken: process.env.DIRECTUS_STATIC_TOKEN,
-    },
-    
-    oauth: {
-      github: {
-        clientId: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      },
-      google: {
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      },
-    },
-    
-    public: {
-      directus: {
-        url: process.env.DIRECTUS_URL,
-        websocketUrl: process.env.DIRECTUS_WS_URL,
-      }
-    }
-  },
-})
-```
-
-### 2. Configure Environment
+### 1. Run Setup Scripts
 
 ```bash
-# .env
+# Generate all layer files
+node setup-layer.js
+node setup-server.js
+```
+
+### 2. Install in Parent Project
+
+```bash
+# Install required peer dependencies
+pnpm add @directus/sdk@latest nuxt-auth-utils
+
+# Add layer to nuxt.config.ts
+export default defineNuxtConfig({
+  extends: ['./layers/directus-layer']
+})
+```
+
+### 3. Configure Environment
+
+```env
 DIRECTUS_URL=http://localhost:8055
 DIRECTUS_WS_URL=ws://localhost:8055
-DIRECTUS_ADMIN_EMAIL=admin@example.com
-DIRECTUS_ADMIN_PASSWORD=your-password
-DIRECTUS_STATIC_TOKEN=your-static-token
-
-# Optional: OAuth
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+DIRECTUS_STATIC_TOKEN=your_static_token_here
+PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### 3. Use in Components
+### 4. Start Using
 
 ```vue
-<template>
-  <div>
-    <div v-if="loggedIn">
-      <p>Welcome, {{ user?.firstName }}!</p>
-      <button @click="logout">Logout</button>
-    </div>
-    <div v-else>
-      <button @click="handleLogin">Login</button>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
-const { loggedIn, user, login, logout } = useDirectusAuth()
-
-const handleLogin = async () => {
-  await login('user@example.com', 'password')
-}
+<script setup>
+// Auto-imported composables - no imports needed!
+const { login, user, logout } = useDirectusAuth()
+const { fetchItems, create } = useDirectusItems()
+const { subscribe } = useDirectusRealtime()
 </script>
 ```
 
-## 📚 Documentation
+## 📖 Documentation
 
-- [Complete Guide](./GUIDE.md) - Comprehensive documentation with examples
-- [Directus Documentation](https://docs.directus.io)
-- [Nuxt Documentation](https://nuxt.com)
+- **[📚 Complete Guide](./GUIDE.md)** - Comprehensive documentation covering all features
+- **[⚡ Quick Reference](#quick-reference)** - Common patterns and examples below
 
-## 🎯 Available Composables
+## 📦 Peer Dependencies
 
-| Composable | Purpose |
-|------------|---------|
-| `useDirectusAuth()` | Authentication and session management |
-| `useDirectus()` | Public Directus client (read-only) |
-| `useAuthenticatedDirectus()` | Authenticated requests via proxy |
-| `useDirectusItems()` | CRUD operations on collections |
-| `useDirectusFiles()` | File upload and management |
-| `useDirectusRealtime()` | WebSocket subscriptions |
-| `useDirectusNotifications()` | Notification system |
-| `useDirectusComments()` | Comment management |
+This layer requires the following packages in your parent project:
 
-## 🔧 Middleware
+| Package | Version | Purpose |
+|---------|---------|---------|
+| `@directus/sdk` | `^20.0.0` | Directus API client |
+| `nuxt-auth-utils` | `^0.5.25` | Authentication utilities |
+| `nuxt` | `^3.0.0` | Nuxt framework |
 
-- `auth` - Protect routes requiring authentication
-- `guest` - Redirect authenticated users (login/register pages)
+**Why peer dependencies?**  
+Using peer dependencies prevents package duplication and keeps your bundle size small. Your parent project provides these packages, and the layer uses them from your `node_modules`.
 
-## 🌐 API Routes
+## 🎯 Quick Reference
 
-- `POST /api/auth/login` - Email/password login
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/logout` - Logout
-- `POST /api/auth/refresh` - Token refresh
-- `GET /api/auth/github` - GitHub OAuth
-- `GET /api/auth/google` - Google OAuth
-- `* /api/directus/[...path]` - Authenticated Directus proxy
-- `POST /api/files/upload` - File upload
+### Authentication
 
-## 💡 Common Use Cases
+```typescript
+const { login, register, logout, user, loggedIn } = useDirectusAuth()
 
-### Protected Page
+// Login
+await login('user@example.com', 'password')
 
-```vue
-<script setup lang="ts">
-definePageMeta({
-  middleware: ['auth']
+// Register
+await register({
+  email: 'user@example.com',
+  password: 'password',
+  firstName: 'John',
+  lastName: 'Doe'
 })
-</script>
 
-<template>
-  <div>
-    <h1>Protected Content</h1>
-  </div>
-</template>
+// OAuth
+loginWithGitHub()
+loginWithGoogle()
+
+// Password Reset
+await requestPasswordReset('user@example.com')
+await resetPassword(token, newPassword)
+
+// User Invitations
+await inviteUser('user@example.com', 'authenticated')
+await acceptInvite(token, password)
 ```
 
-### Fetch Items
+### Working with Data
 
-```vue
-<script setup lang="ts">
-const { fetchItems } = useDirectusItems()
+```typescript
+const { fetchItems, fetchItem, create, update, deleteOne } = useDirectusItems()
 
+// Fetch items
 const { data: posts } = await fetchItems('posts', {
-  fields: ['id', 'title', 'author.name'],
+  fields: ['id', 'title', 'author.*'],
+  filter: { status: { _eq: 'published' } },
   sort: ['-date_created'],
   limit: 10
 })
-</script>
 
-<template>
-  <div>
-    <article v-for="post in posts" :key="post.id">
-      <h2>{{ post.title }}</h2>
-      <p>By {{ post.author?.name }}</p>
-    </article>
-  </div>
-</template>
-```
-
-### Real-time Updates
-
-```vue
-<script setup lang="ts">
-const { connect, subscribe } = useDirectusRealtime()
-
-onMounted(() => {
-  connect()
-  
-  const unsubscribe = subscribe('messages', (data) => {
-    console.log('New message:', data)
-  })
-  
-  onUnmounted(() => unsubscribe())
+// Create item
+const newPost = await create('posts', {
+  title: 'Hello World',
+  status: 'draft'
 })
-</script>
+
+// Update item
+await update('posts', postId, { status: 'published' })
+
+// Delete item
+await deleteOne('posts', postId)
 ```
 
-### File Upload
+### Real-time Subscriptions
 
-```vue
-<script setup lang="ts">
-const { uploadFile } = useDirectusFiles()
+```typescript
+const { subscribe, sendMessage } = useDirectusRealtime()
 
-const handleUpload = async (file: File) => {
-  const result = await uploadFile(file, {
-    title: file.name,
-    folder: 'user-uploads'
-  })
-  console.log('Uploaded:', result.file.id)
+// Subscribe to changes
+const { subscription } = await subscribe('messages', {
+  event: 'create',
+  query: {
+    fields: ['*', 'user.*'],
+    filter: { channel: { _eq: 'general' } }
+  }
+})
+
+for await (const message of subscription) {
+  console.log('New message:', message)
 }
-</script>
-```
 
-## 🔄 Type Generation
-
-Generate TypeScript types from your Directus schema:
-
-```bash
-pnpm run generate:types
-```
-
-Requires:
-- `DIRECTUS_URL` set in `.env`
-- `DIRECTUS_STATIC_TOKEN` with admin permissions
-
-## 🏗️ Project Structure
-
-```
-directus-nuxt-layer/
-├── composables/           # Vue composables
-│   ├── useDirectus.ts
-│   ├── useDirectusAuth.ts
-│   ├── useDirectusItems.ts
-│   ├── useDirectusFiles.ts
-│   ├── useDirectusRealtime.ts
-│   ├── useDirectusNotifications.ts
-│   └── useDirectusComments.ts
-├── server/
-│   ├── api/              # API routes
-│   │   ├── auth/
-│   │   ├── directus/
-│   │   └── files/
-│   └── utils/            # Server utilities
-│       └── directus.ts
-├── middleware/           # Route middleware
-│   ├── auth.ts
-│   └── guest.ts
-├── plugins/              # Nuxt plugins
-│   └── auth-refresh.client.ts
-├── types/               # TypeScript types
-│   └── index.d.ts
-├── scripts/             # Utility scripts
-│   └── generate-types.js
-└── nuxt.config.ts       # Layer configuration
-```
-
-## 🔒 Security Features
-
-- Server-side session storage
-- Automatic token refresh
-- Secure cookie handling
-- Request authentication proxy
-- OAuth integration
-- CSRF protection via nuxt-auth-utils
-
-## 🌟 Advanced Features
-
-### Custom Query Filters
-
-```typescript
-const { fetchItems } = useDirectusItems()
-
-const { data } = await fetchItems('articles', {
-  filter: {
-    _and: [
-      { status: { _eq: 'published' } },
-      { date_published: { _lte: '$NOW' } },
-      {
-        _or: [
-          { category: { _eq: 'tech' } },
-          { tags: { _contains: 'featured' } }
-        ]
-      }
-    ]
-  }
+// Send via WebSocket
+await sendMessage({
+  collection: 'messages',
+  action: 'create',
+  data: { text: 'Hello!', channel: 'general' }
 })
 ```
 
-### Deep Field Selection
+### File Management
 
 ```typescript
-const { data } = await fetchItems('posts', {
-  fields: [
-    'id',
-    'title',
-    'content',
-    'author.first_name',
-    'author.last_name',
-    'author.avatar',
-    'categories.category_id.name',
-    'comments.count'
-  ],
-  deep: {
-    comments: {
-      _filter: {
-        status: { _eq: 'approved' }
-      },
-      _sort: ['-date_created'],
-      _limit: 5
-    }
-  }
+const { uploadFile, getFileUrl, deleteFile } = useDirectusFiles()
+
+// Upload file
+const result = await uploadFile(file, {
+  title: 'My Image',
+  folder: 'uploads'
+})
+
+// Get optimized URL
+const imageUrl = getFileUrl(fileId, {
+  width: 800,
+  height: 600,
+  fit: 'cover',
+  quality: 80,
+  format: 'webp'
+})
+
+// Delete file
+await deleteFile(fileId)
+```
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────┐
+│       Your Parent Project           │
+│  • Provides peer dependencies       │
+│  • Extends this layer               │
+│  • Uses auto-imported composables   │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│      Directus Nuxt Layer            │
+│  • Composables (auto-imported)      │
+│  • Server endpoints & middleware    │
+│  • TypeScript definitions           │
+│  • Authentication & realtime        │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│       Directus Backend              │
+│  • REST API & GraphQL               │
+│  • WebSocket server                 │
+│  • Authentication & permissions     │
+└─────────────────────────────────────┘
+```
+
+## 🔒 Security
+
+- ✅ Tokens stored server-side only (never exposed to client)
+- ✅ Automatic token refresh before expiration
+- ✅ Secure session management with nuxt-auth-utils
+- ✅ OAuth provider integration
+- ✅ Role-based access control via Directus
+
+## 🛠️ Available Composables
+
+All composables are auto-imported in your parent project:
+
+| Composable | Purpose |
+|------------|---------|
+| `useDirectusAuth()` | Authentication (login, register, OAuth, etc.) |
+| `useDirectus()` | Base public client |
+| `useAuthenticatedDirectus()` | Authenticated API requests |
+| `useDirectusItems()` | CRUD operations |
+| `useDirectusFiles()` | File management |
+| `useDirectusRealtime()` | WebSocket subscriptions |
+| `useDirectusNotifications()` | User notifications |
+| `useDirectusComments()` | Comments system |
+
+## 🚦 Middleware
+
+Protect routes automatically:
+
+```typescript
+// Require authentication
+definePageMeta({
+  middleware: 'auth'
+})
+
+// Guest only (redirects if logged in)
+definePageMeta({
+  middleware: 'guest'
 })
 ```
 
-### Aggregation
+## 📝 Environment Variables
 
-```typescript
-const { aggregateItems } = useDirectusItems()
+See `.env.example` for all available options.
 
-const { data } = await aggregateItems('orders', {
-  aggregate: {
-    count: ['id'],
-    sum: ['total'],
-    avg: ['total']
-  },
-  groupBy: ['status']
-})
-```
+**Required:**
+- `DIRECTUS_URL` - Your Directus instance URL
+- `DIRECTUS_WS_URL` - WebSocket URL
+
+**Recommended:**
+- `DIRECTUS_STATIC_TOKEN` - Static token for server operations
+- `PUBLIC_APP_URL` - Your app URL (for email links)
+
+**Optional:**
+- `DIRECTUS_ADMIN_EMAIL` - Admin credentials (fallback)
+- `DIRECTUS_ADMIN_PASSWORD` - Admin credentials (fallback)
+- OAuth provider credentials (GitHub, Google)
+
+## 🐛 Troubleshooting
+
+### "Module not found: @directus/sdk"
+→ Install peer dependencies in parent project: `pnpm add @directus/sdk@latest nuxt-auth-utils`
+
+### "No authentication token available"
+→ Add `DIRECTUS_STATIC_TOKEN` to your `.env` file
+
+### WebSocket connection fails
+→ Check `DIRECTUS_WS_URL` and verify WebSocket is enabled in Directus
+
+For more troubleshooting, see the [Complete Guide](./GUIDE.md#troubleshooting).
+
+## 📚 Learn More
+
+- [📚 Complete Guide](./GUIDE.md) - In-depth documentation
+- [Directus Documentation](https://docs.directus.io)
+- [Nuxt 3 Documentation](https://nuxt.com/docs)
+- [Directus SDK Reference](https://docs.directus.io/guides/sdk)
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome! This layer is designed to be extended and customized for your needs.
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+## 📄 License
 
-## 📝 License
-
-MIT License - see [LICENSE](./LICENSE) file
-
-## 🆘 Support
-
-- [GitHub Issues](https://github.com/pvenableh/directus-nuxt-layer/issues)
-- [Directus Documentation](https://docs.directus.io)
-- [Nuxt Documentation](https://nuxt.com)
-
-## 🙏 Credits
-
-Built with:
-- [Nuxt 3](https://nuxt.com) - The Intuitive Vue Framework
-- [Directus SDK](https://docs.directus.io/guides/sdk/) - Directus JavaScript SDK
-- [nuxt-auth-utils](https://github.com/Atinux/nuxt-auth-utils) - Authentication utilities
-
-## 🔄 Updates
-
-To update to the latest version:
-
-```bash
-pnpm update directus-nuxt-layer
-
-# Or reinstall
-pnpm install github:pvenableh/directus-nuxt-layer@latest
-```
-
-## 📋 Requirements
-
-- Node.js >= 18
-- Nuxt 3.x
-- Directus >= 10.x
-- pnpm/npm/yarn
-
-## 🎯 Roadmap
-
-- [ ] Additional OAuth providers
-- [ ] GraphQL support
-- [ ] Offline support with service workers
-- [ ] Advanced caching strategies
-- [ ] Admin UI components
-- [ ] Migration utilities
-- [ ] Testing utilities
+MIT
 
 ---
 
-Made with ❤️ for the Nuxt and Directus communities
+**Need help?** Check the [📚 Complete Guide](./GUIDE.md) for detailed documentation, examples, and best practices.

@@ -1,10 +1,13 @@
 /**
  * Authentication composable for Directus + Nuxt Auth Utils
+ * 
+ * COMPLETE VERSION with password reset and user invitations
  */
 export const useDirectusAuth = () => {
   const { loggedIn, user, session, clear: clearSession, fetch: fetchSession } = useUserSession()
   const router = useRouter()
 
+  // ===== BASIC AUTH =====
   const login = async (email: string, password: string) => {
     try {
       const response = await $fetch('/api/auth/login', {
@@ -59,6 +62,59 @@ export const useDirectusAuth = () => {
     }
   }
 
+  // ===== PASSWORD RESET =====
+  const requestPasswordReset = async (email: string) => {
+    try {
+      const response = await $fetch('/api/auth/password-request', {
+        method: 'POST',
+        body: { email }
+      })
+      return response
+    } catch (error: any) {
+      throw new Error(error.data?.message || 'Password reset request failed')
+    }
+  }
+
+  const resetPassword = async (token: string, password: string) => {
+    try {
+      const response = await $fetch('/api/auth/password-reset', {
+        method: 'POST',
+        body: { token, password }
+      })
+      return response
+    } catch (error: any) {
+      throw new Error(error.data?.message || 'Password reset failed')
+    }
+  }
+
+  // ===== USER INVITATIONS =====
+  const inviteUser = async (email: string, role?: string) => {
+    try {
+      const response = await $fetch('/api/auth/invite', {
+        method: 'POST',
+        body: { email, role }
+      })
+      return response
+    } catch (error: any) {
+      throw new Error(error.data?.message || 'Failed to send invitation')
+    }
+  }
+
+  const acceptInvite = async (token: string, password: string) => {
+    try {
+      const response = await $fetch('/api/auth/accept-invite', {
+        method: 'POST',
+        body: { token, password }
+      })
+      
+      await fetchSession()
+      return response
+    } catch (error: any) {
+      throw new Error(error.data?.message || 'Failed to accept invitation')
+    }
+  }
+
+  // ===== OAUTH =====
   const loginWithGitHub = () => {
     window.location.href = '/api/auth/github'
   }
@@ -68,13 +124,26 @@ export const useDirectusAuth = () => {
   }
 
   return {
+    // State
     loggedIn,
     user,
     session,
+    
+    // Basic Auth
     login,
     register,
     logout,
     refreshToken,
+    
+    // Password Reset
+    requestPasswordReset,
+    resetPassword,
+    
+    // User Invitations
+    inviteUser,
+    acceptInvite,
+    
+    // OAuth
     loginWithGitHub,
     loginWithGoogle,
   }
