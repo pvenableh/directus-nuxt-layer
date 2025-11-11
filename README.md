@@ -40,15 +40,7 @@
 
 ## 🚀 Quick Start
 
-### 1. Run Setup Scripts
-
-```bash
-# Generate all layer files
-node setup-layer.js
-node setup-server.js
-```
-
-### 2. Install in Parent Project
+### 1. Install in Parent Project
 
 ```bash
 # Install required peer dependencies
@@ -60,7 +52,7 @@ export default defineNuxtConfig({
 })
 ```
 
-### 3. Configure Environment
+### 2. Configure Environment
 
 ```env
 DIRECTUS_URL=http://localhost:8055
@@ -69,7 +61,7 @@ DIRECTUS_STATIC_TOKEN=your_static_token_here
 PUBLIC_APP_URL=http://localhost:3000
 ```
 
-### 4. Start Using
+### 3. Start Using
 
 ```vue
 <script setup>
@@ -98,7 +90,7 @@ This layer requires the following packages in your parent project:
 **Why peer dependencies?**  
 Using peer dependencies prevents package duplication and keeps your bundle size small. Your parent project provides these packages, and the layer uses them from your `node_modules`.
 
-## 🎯 Quick Reference
+## Quick Reference 🎯
 
 ### Authentication
 

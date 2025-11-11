@@ -108,36 +108,43 @@ directus-layer/
 
 ## Initial Setup
 
-### Step 1: Create the Layer
+This layer comes pre-configured with all necessary files and composables. Follow these steps to integrate it into your parent project.
 
-Run the setup scripts to generate all files:
+### Requirements
 
-```bash
-# In your layer directory
-node setup-layer.js
-node setup-server.js
+Before using this layer, ensure you have:
+- Node.js 18+ installed
+- A Nuxt 3 project
+- A Directus instance (local or hosted)
+
+### Step 1: Verify Layer Structure
+
+Your layer directory should contain:
+
 ```
-
-This creates:
-- All composables
-- Server endpoints
-- Middleware and plugins
-- Type definitions
-- Configuration files
+directus-layer/
+├── composables/          # Auto-imported composables
+├── server/              # API endpoints & middleware
+├── middleware/          # Route protection
+├── plugins/             # Auto-refresh plugin
+├── types/               # TypeScript definitions
+├── nuxt.config.ts       # Layer configuration
+├── package.json         # Peer dependencies
+├── .env.example         # Environment template
+├── README.md           # This file
+└── GUIDE.md            # Complete guide
+```
 
 ### Step 2: Install Layer Dependencies
 
-The layer itself needs minimal dependencies for development:
+The layer uses peer dependencies to avoid duplication. First, install the layer's dev dependencies:
 
 ```bash
 cd directus-layer
 pnpm install
 ```
 
-**Important**: The layer uses `peerDependencies`, so it expects the parent project to provide:
-- `@directus/sdk`
-- `nuxt-auth-utils`
-- `nuxt`
+This installs minimal development dependencies for the layer itself.
 
 ---
 
@@ -1084,15 +1091,14 @@ watch(error, (val) => {
 
 ## Next Steps
 
-1. ✅ Set up your layer with the setup scripts
-2. ✅ Configure environment variables
-3. ✅ Add layer to parent project
-4. ✅ Install peer dependencies in parent
-5. ✅ Test authentication
-6. ✅ Test CRUD operations
-7. ✅ Test realtime features
-8. ✅ Add error tracking
-9. ✅ Deploy to production
+1. ✅ Configure environment variables
+2. ✅ Add layer to parent project
+3. ✅ Install peer dependencies in parent
+4. ✅ Test authentication
+5. ✅ Test CRUD operations
+6. ✅ Test realtime features
+7. ✅ Add error tracking
+8. ✅ Deploy to production
 
 ## Additional Resources
 
