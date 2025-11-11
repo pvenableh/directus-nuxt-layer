@@ -90,7 +90,7 @@ This layer requires the following packages in your parent project:
 **Why peer dependencies?**  
 Using peer dependencies prevents package duplication and keeps your bundle size small. Your parent project provides these packages, and the layer uses them from your `node_modules`.
 
-## Quick Reference 🎯
+## Quick Reference
 
 ### Authentication
 
