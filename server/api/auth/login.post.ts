@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   try {
     const directus = createServerDirectus()
     
-    const authResult = await directus.login(email, password)
+    const authResult = await directus.login({ email, password })
     const user = await directus.request(readMe())
 
     const expiresAt = Date.now() + (authResult.expires * 1000)
